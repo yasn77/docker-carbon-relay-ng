@@ -1,0 +1,35 @@
+# This is only used to build an binary, which will be used by
+# the main Dockerfile.
+#
+# Main reason for doing this, is because most the tools installed
+# here are not required by the binary so ends up wasting space.
+#
+# Yasser
+
+FROM debian:wheezy
+MAINTAINER Yasser Nabi "yassersaleemi@gmail.com"
+EXPOSE 2003 2004 8081
+
+ENV DEBIAN_FRONTEND noninteractive
+ENV GOPATH=/gopath
+ENV GOROOT=/go
+ENV PATH=$PATH:/go/bin:$GOPATH/bin:$GOPATH/src/github.com/graphite-ng/carbon-relay-ng/
+
+RUN mkdir /gopath /go
+
+# Chaining commands as we wont need the build tools, so will delete at the end of the chain
+# to help reduce the size of the image
+RUN apt-get update && \
+        apt-get -y install gawk curl unzip git build-essential && \
+        curl https://storage.googleapis.com/golang/go1.4.2.linux-amd64.tar.gz | tar --strip-components=1 -zxvf - -C /go/ && \
+        go get -d github.com/graphite-ng/carbon-relay-ng && \
+        go get github.com/jteeuwen/go-bindata/... && \
+        cd $GOPATH/src/github.com/graphite-ng/carbon-relay-ng && \
+        make && \
+        mv $GOPATH/src/github.com/graphite-ng/carbon-relay-ng/carbon-relay-ng /usr/bin/carbon-relay-ng && \
+        apt-get -y remove curl unzip git build-essential && \
+        apt-get clean && \
+        apt-get autoclean && \
+        apt-get -y autoremove && \
+        rm -rf $GOPATH/ $GOROOT/
+
